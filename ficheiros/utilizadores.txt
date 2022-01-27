@@ -1,0 +1,11 @@
+admin;admin;admin;admin
+Nome de Utilizador;teste@;teste;user
+efwfewf;eewfwe@;123;user
+qwdwq;lol@dw;123;user
+qwdwd;qwd@;123;user
+wqe;ewqe@;123;user
+fwef;wfeewf@;123;user
+1;1;1;user
+yotrgm;tomas@;123;user
+user;user;user;usr
+wqd;wdqdw@;123;user

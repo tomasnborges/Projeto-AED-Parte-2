@@ -1,17 +1,3 @@
-#TODO
-"""
-Catálogo - Bernardo, Monge, Tomás
-Admin - Bernardo, Monge, Tomás
-Top de Most rated - Bernardo, Monge
-Notificaçoes - Monge
-Favoritos - Bernardo
- """
-
-#Feito
-""" 
-Login e Registo - Tomás
- """
-
 from cmath import log
 from faulthandler import disable
 from operator import truediv
@@ -20,7 +6,6 @@ from tkinter import *
 from tkinter import ttk
 from tkinter import font
 from PIL import ImageTk, Image
-from tkinter import messagebox
 from tkinter.ttk import Combobox
 import datetime
 
@@ -213,8 +198,16 @@ def mostrarJanelaPrincipal(janela_principal):
 
 
     #Botão da imagem de Melgaço
-    btn_procurar= Button(pw_tendencias,image=melgaco,bg="white", activebackground="white",relief=SUNKEN,borderwidth=0,command=lambda:prepararCatalogo(janela_principal,barra_menu,"Guia e roteiro para visitar Melgaço","2")) 
-    btn_procurar.place(x=10,y=85)
+    btn_melgaço= Button(pw_tendencias,image=melgaco,bg="white", activebackground="white",relief=SUNKEN,borderwidth=0,command=lambda:prepararCatalogo(janela_principal,barra_menu,"Guia e roteiro para visitar Melgaço","2")) 
+    btn_melgaço.place(x=10,y=85)
+
+    #Botão da imagem de Aveiro
+    btn_aveiro= Button(pw_tendencias,image=aveiro,bg="white", activebackground="white",relief=SUNKEN,borderwidth=0,command=lambda:prepararCatalogo(janela_principal,barra_menu,"Um dia em Aveiro","3")) 
+    btn_aveiro.place(x=215,y=85)
+
+    #Botão da imagem de Ponte de Lima
+    btn_ponte_lima= Button(pw_tendencias,image=ponte_de_lima,bg="white", activebackground="white",relief=SUNKEN,borderwidth=0,command=lambda:prepararCatalogo(janela_principal,barra_menu,"Roteiro turístico de Ponte de Lima","4")) 
+    btn_ponte_lima.place(x=420,y=85)
 
     #PanedWindow para os outros roteiros
     pw_outros = PanedWindow(janela_principal,width=636,height=264,bd=-2, bg="white")
@@ -524,7 +517,7 @@ def desmarcarFavorito(coracao_btn,todos_btn,favoritos_btn,lbox_roteiros):
 
     preciso_remover = 0
     j = 0
-    while j < (len(favoritos)): # para cada utilizador existente na aplicação que ja marcou pelo menos um roteiro como favorito #
+    while j < (len(favoritos)):
         campos = favoritos[j].split(";")
 
         if preciso_remover == 1 and j == 0:
@@ -546,8 +539,7 @@ def desmarcarFavorito(coracao_btn,todos_btn,favoritos_btn,lbox_roteiros):
         txt_favoritos = open("ficheiros/favoritos.txt", "a", encoding="utf-8")
         txt_favoritos.write(string_username + "\n") 
         txt_favoritos.close()    
-                
-    coracao_btn.config(image = coracao_vazio, command=lambda:marcarFavorito(coracao_btn,todos_btn,favoritos_btn,lbox_roteiros))
+    coracao_btn.config(image = coracao_vazio,command=lambda:marcarFavorito(coracao_btn,todos_btn,favoritos_btn,lbox_roteiros))
 
     if a_ver_que_lista == "favoritos":
         verFavoritos(todos_btn,favoritos_btn,lbox_roteiros)
@@ -732,7 +724,8 @@ def procurarRoteiro(pesquisa,lbox_roteiros):
                                                roteiros_filtrados.append(campos1[1])
 
     # para manter o roteiro selecionado a escuro    
-    global nome_roteiro                       
+    global nome_roteiro, info_tipo, info_ordem
+
     i = 0
     indice1 = -1
     for roteiro in roteiros_filtrados:
@@ -740,6 +733,11 @@ def procurarRoteiro(pesquisa,lbox_roteiros):
             indice1 = i
         i+=1
     lbox_roteiros.select_set(indice1)
+
+    if info_tipo == "p":
+        ordenarDescAscPontuacoes(lbox_roteiros,info_ordem, nome_roteiro,roteiros_filtrados)
+    elif info_tipo == "v":
+        ordenarDescAscVisualizacoes(lbox_roteiros,info_ordem, nome_roteiro, roteiros_filtrados)
         
 
 #Destruir os widgets da janela principal e mostrar o catalogo
@@ -754,27 +752,35 @@ def prepararCatalogo(janela_principal,barra_menu,nome_roteiro_escolhido1,id_rote
     fundo_branco = PanedWindow(janela_principal ,width=1366,height=768,bg="white") 
     fundo_branco.place(x=0,y=0)
     altura = 768
+
     mostrarCatalogo(janela_principal,barra_menu,altura,imagem_clicada)
     
 def prepararFavoritos(janela_principal,barra_menu):
     mostrarFavoritos(janela_principal,barra_menu)
 
 def prepararTopMostRated(janela_principal,barra_menu):
-    mostrarTop(janela_principal,barra_menu)
+    mostrarTop()
 
 def prepararNotificacoes(janela_principal,barra_menu):
-    mostrarNotificacoes(janela_principal,barra_menu)
+    mostrarNotificacoes()
 
 def prepararAdmin(janela_principal,barra_menu):
     mostrarAdmin(janela_principal,barra_menu)
 
 #Destruir os widgets do catalogo e mostrar a janela principal
-def prepararJanelaPrincipal(janela_principal,*widgets):
+def prepararJanelaPrincipal(janela_principal,my_canvas,*widgets):
+
+    global  categoria_selected,nome_roteiro, info_tipo,info_ordem
 
     # dar reset aos filtros 
     pesquisa.set("")
-    global  categoria_selected
     categoria_selected = []
+    nome_roteiro = ""
+    info_ordem = ""
+    info_tipo = ""
+
+    my_canvas.unbind_all("<MouseWheel>") # para não dar erros quando o utilizador faz scroll na página princiapl
+
 
     for widget in widgets:
         widget.destroy()
@@ -787,7 +793,7 @@ a_ver_que_lista = "todos"
 categoria_selected = [] #lista que armazena valores booleanos que mostram se uma categoria está ou não selecionada
 categorias_nomes = []  #lista que guarda os nomes das categorias
 
-def mostrarNotificacoes(janela_principal,barra_menu):
+def mostrarNotificacoes():
     notificacoes_janela = Toplevel()
     app_width = 800
     app_height = 500
@@ -797,6 +803,7 @@ def mostrarNotificacoes(janela_principal,barra_menu):
     notificacoes_janela.configure(bg = "#fff")
     notificacoes_janela.focus_force()
     notificacoes_janela.grab_set()
+    notificacoes_janela.resizable(0,0)
 
     #Label "Notificações"
     lbl_notificacoes = Label(notificacoes_janela,text='Notificações', relief="flat",font=("Helvetica 17"), bg="white")
@@ -811,7 +818,7 @@ def mostrarNotificacoes(janela_principal,barra_menu):
     btn_consultar.place(x=88,y=407)
 
     #Text notificação
-    txt_notificacao = Text(notificacoes_janela, wrap='word', bg="black", fg="white",cursor="arrow",selectbackground="#09d8be",bd=-2) #Para mudar o cursor, documento https://anzeljg.github.io/rin2/book2/2405/docs/tkinter/cursors.html
+    txt_notificacao = Text(notificacoes_janela, wrap='word',relief="solid", bg="white", fg="white",cursor="arrow",selectbackground="#09d8be",bd=-2,borderwidth=2)
     txt_notificacao.place(x=341,y=100,width=354, height=301)
 
 
@@ -823,6 +830,7 @@ def mostrarAdmin(janela_principal,barra_menu):
     y = (screen_height/2) - (app_height/2)
     admin_janela.configure(bg = "#fff")
     admin_janela.geometry("{:.0f}x{:.0f}+{:.0f}+{:.0f}" .format(app_width,app_height,x,y))
+    admin_janela.resizable(0,0)
     
     admin_janela.focus_force()
     admin_janela.grab_set()
@@ -889,9 +897,7 @@ def mostrarAdmin(janela_principal,barra_menu):
     lbl_opcoes.place(x=500,y=208) 
 
 
-
-
-def mostrarTop(janela_principal,barra_menu):
+def mostrarTop():
     top_janela = Toplevel()
     app_width = 800
     app_height = 500
@@ -900,47 +906,9 @@ def mostrarTop(janela_principal,barra_menu):
     top_janela.geometry("{:.0f}x{:.0f}+{:.0f}+{:.0f}" .format(app_width,app_height,x,y))
     top_janela.configure(bg = "#fff")
     top_janela.focus_force()
+    top_janela.resizable(0,0)
     top_janela.grab_set()
 
-    #Label "Roteiors mais vistos"
-    lbl_roteirosvistos = Label(top_janela,text='Roteiros mais vistos', relief="flat",font=("Helvetica 17"), bg="white")
-    lbl_roteirosvistos.place(x=44,y=20) 
-
-    #Label "Escolha uma das opções"
-    lbl_opcoes = Label(top_janela,text='Escolha uma das opções', relief="flat",font=("Helvetica 12"), bg="white", fg="blue")
-    lbl_opcoes.place(x=44,y=100) 
-
-    #Radiobuttons
-    val_categoria = StringVar()
-    val_categoria.set('Todas') #já devemos ter um valor da radiobutton selecionada
-
-    txt_categorias = open("ficheiros\\categorias.txt", "r", encoding="utf-8")
-    linhas = txt_categorias.readlines()
-    txt_categorias.close()
-
-    categorias_nomes1 = [] # lista que vai inicializar os radiobuttons
-    categorias = []
-    i = 0
-    categorias.append( Radiobutton(top_janela, text="Todas", value="Todas", variable=val_categoria, bg="white",command='noaction', activebackground="white"))
-    categorias[0].place(x = 25, y = 150 + i*25)
-    for categoria in linhas:
-        categorias_nomes1.append(categoria[0:-1]) # -1 == len(lista)-1, ignoramos o último index porque é um espaço 
-        categorias.append( Radiobutton(top_janela, text=categorias_nomes1[i], value=categorias_nomes1[i], variable=val_categoria, bg="white",command='noaction', activebackground="white"))
-        categorias[i].bind("<Button-1>", lambda e: mostrarTopCategoria(e, categorias_nomes[i],val_categoria))
-        categorias[i].place(x = 44, y = 150 + i*25)
-        i+=1
-
-    #treeview
-    table = ttk.Treeview(top_janela,columns = ("Lugar", "Roteiro"), show = "headings")
-    table.column("Lugar", width=100,anchor="c")
-    table.column("Roteiro", width=250,anchor="c")
-    table.heading("Lugar", text="Lugar")
-    table.heading("Roteiro", text="Roteiro")
-    table.place(x=350,y=100, height=300)
-
-
-def mostrarTopCategoria(e, categoria,val_categoria):
-    categoria_escolhida = val_categoria.get()
     txt_roteiro_categoria = open("ficheiros/roteiro-categoria.txt", "r", encoding="utf-8")
     linhas = txt_roteiro_categoria.readlines()
     txt_roteiro_categoria.close()
@@ -950,25 +918,104 @@ def mostrarTopCategoria(e, categoria,val_categoria):
     txt_vusualizacoes.close()
 
     txt_roteiros = open("ficheiros/roteiros.txt", "r", encoding="utf-8")
-    linhas2 = txt_roteiros.readlines()
+    roteiros = txt_roteiros.readlines()
     txt_roteiros.close()
 
+    #Label "Roteiors mais vistos"
+    lbl_roteirosvistos = Label(top_janela,text='Roteiros mais vistos', relief="flat",font=("Helvetica 17"), bg="white")
+    lbl_roteirosvistos.place(x=44,y=20) 
 
-    
+    #Label "Escolha uma das opções"
+    lbl_opcoes = Label(top_janela,text='Escolha uma das opções', relief="flat",font=("Helvetica 12"), bg="white", fg="blue")
+    lbl_opcoes.place(x=44,y=100) 
+
+
+    #treeview
+    tree = ttk.Treeview(top_janela,columns = ("Lugar", "Roteiro"), show = "headings")
+    tree.column("Lugar", width=100,anchor="c")
+    tree.column("Roteiro", width=250,anchor="c")
+    tree.heading("Lugar", text="Lugar")
+    tree.heading("Roteiro", text="Roteiro")
+    tree.place(x=350,y=100, height=300)
+
+    #combobox com todas as categorias
+    #Ler documento que ensina a mudar os styles de uma ttk.combobox https://www.tcl.tk/man/tcl/TkCmd/ttk_combobox.html
+    #Ler documento sobre os temas https://wiki.tcl-lang.org/page/List+of+ttk+Themes
+    combostyle = ttk.Style()
+    combostyle.theme_use('clam') # um tema ttk pode ter a base default ou a base clam, a base clam permite que modifiquemos os widgets nativos
+    #que o tkinter original não permite, por exemplo a Combobox.
+    combostyle.configure("TCombobox", fieldbackground= "#F3F6FB", background= "#F3F6FB",bordercolor="white",selectbackground="#F3F6FB",selectforeground="black",readonlybackground="#F3F6FB")
+    #Leiam este docuemnto da página oficial tk para forçar uma mudança aos styles de uma ttk.combobox dependendo do state do widget, porque o .configure muda 
+    # quando o state é o que já se encontra por defeito:https://tkdocs.com/shipman/ttk-map.html
+    combostyle.map("TCombobox", fieldbackground=[("readonly", "#F3F6FB")],
+                    selectbackgorund=[("readonly", "#F3F6FB")],
+                    foreground=[("readonly", "black")])
+    categorias_txt = open("ficheiros/categorias.txt", "r", encoding="utf-8")
+    categorias = categorias_txt.readlines()
+    categorias_txt.close()
+    lista = []
+    lista.append("Todas")
+    for categoria in categorias:
+        lista.append(categoria[0:-1]) # -1 == len(lista)-1, ignoramos o último index porque é um espaço 
+    cb_categorias= Combobox(top_janela,values = lista,state="readonly",font=("Helvetica 11")) #Só muda a fonte da opção que está selecionada
+    cb_categorias.place(x=47,y=135,height=27,width=205)
+    top_janela.option_add('*TCombobox*Listbox.font', "Helvetica 11") #Muda a fonte de todas as opções https://stackoverflow.com/questions/43086378/how-to-modify-ttk-combobox-fonts
+    cb_categorias.set("Selecione uma categoria")
+
+    cb_categorias.bind("<<ComboboxSelected>>", lambda e :mostrarTopCategoria(e, cb_categorias, linhas,roteiros,linhas1,tree))
+    mostrarTopCategoria(0, cb_categorias, linhas,roteiros,linhas1,tree)
+
+
+def mostrarTopCategoria(e, cb_categorias, linhas,roteiros,linhas1,tree):
+    tree.delete(*tree.get_children()) 
+
+    lista_visualizacoes = []
+    nomees_roteiros = []
     nr_visualizaçoes = 0
-    if categoria_escolhida != "Todas":
-        for linha in linhas:
-            campos = linha.split(";")
-            nr_categorias = len(campos)
-            for x in range(1,nr_categorias):
-                if campos[x] == categoria_escolhida: # coincidir a categoria
-                    for linha2 in linhas2:
-                        campos2 = linha2.split(";")
-                        if campos2[1] == campos[0]:  # coincidir o nome
+    if cb_categorias.get() == "Todas" or cb_categorias.get() == "Selecione uma categoria" :
+        for roteiro in roteiros:
+            campos = roteiro.split(";")
+            for linha1 in linhas1:
+                campos1 = linha1.split(";")
+                if campos1[0] == campos[0][:1]:
+                    nr_visualizaçoes +=1
+            lista_visualizacoes.append(nr_visualizaçoes)
+            nomees_roteiros.append(campos[1])
+            nr_visualizaçoes = 0
+        
+    else:
+        for roteiro in roteiros:
+            campos= roteiro.split(";")
+            # campos[1] nome do roteiro
+            # campos[0][:1] - id do roteiro
+            for linha in linhas:
+                campos1 = linha.split(";")
+                nome_roteiro1 = campos1[0]
+                nr_categorias = len(campos1)
+                if campos[1] == nome_roteiro1: # comer
+                    for i in range(1,nr_categorias):
+                        if cb_categorias.get() == campos1[i]: # confirmar se o roteiro contêm a mesma categoria que foi escolhida
                             for linha1 in linhas1:
-                                campos1 = linha1.split(";")
-                                if campos1[0] == campos2[0][:1]: # coincidir o id
-                                    nr_visualizaçoes += 1
+                                campos2 = linha1.split(";")
+                                if campos[0][:1] == campos2[0]:
+                                    nr_visualizaçoes+=1
+
+                            lista_visualizacoes.append(nr_visualizaçoes)
+                            nomees_roteiros.append(campos[1])
+                            nr_visualizaçoes = 0
+            
+    k=0
+    lista_ordenada = []
+    for i in range(len(lista_visualizacoes)):
+        for j in range(i,-1, -1):
+            if lista_visualizacoes[i] < lista_visualizacoes[j]:
+                k += 1
+        lista_ordenada[k:k] = [nomees_roteiros[i]] # forma de inserir dados numa outra lista inspirada no site https://stackoverflow.com/questions/14895599/insert-an-element-at-a-specific-index-in-a-list-and-return-the-updated-list
+        k = 0  
+    
+    for i in range(len(lista_ordenada)):
+        tree.insert("", i, values = (i+1, lista_ordenada[i]))
+
 
 
 
@@ -982,10 +1029,12 @@ def mostrarFavoritos(janela_principal,barra_menu):
     favoritos_janela.configure(bg = "#fff")
     favoritos_janela.focus_force()
     favoritos_janela.grab_set()
+    favoritos_janela.resizable(0,0)
 
     #Label "Favoritos"
     lbl_roteirosvistos = Label(favoritos_janela,text='Favoritos', relief="flat",font=("Helvetica 17"), bg="white")
     lbl_roteirosvistos.place(x=25,y=20) 
+
 
     #Listbox da esquerda
     lbox_roteiros1 = Listbox(favoritos_janela,relief="flat",bd=-2, bg="#F3F6FB",fg="#7E7E7E",font=('Helvetica', 11,"bold"), activestyle="none",highlightthickness=0,selectbackground='#F3F6FB',selectforeground='black')
@@ -995,24 +1044,110 @@ def mostrarFavoritos(janela_principal,barra_menu):
     lbox_roteiros2 = Listbox(favoritos_janela,relief="flat",bd=-2, bg="#F3F6FB",fg="#7E7E7E",font=('Helvetica', 11,"bold"), activestyle="none",highlightthickness=0,selectbackground='#F3F6FB',selectforeground='black') 
     lbox_roteiros2.place(x=512,y=+119,height=262,width=243)
     
-    #Botão "Feito"
-    btn_entrar= Button(favoritos_janela,image=feito_img,bg="white", activebackground="white",relief=SUNKEN,borderwidth=0, font=("Helvetica 16 bold"),command="noaction") 
-    btn_entrar.place(x=322,y=230)
+    MostrarFeitosNaoFeitos(lbox_roteiros1,lbox_roteiros2)
 
-    #Botão "Remover"
-    btn_entrar= Button(favoritos_janela,image=remover_img,bg="white", activebackground="white",relief=SUNKEN,borderwidth=0, font=("Helvetica 16 bold"),command="noaction")  
-    btn_entrar.place(x=88,y=407)
+    #Botão "Feito"
+    btn_entrar= Button(favoritos_janela,image=feito_img,bg="white", activebackground="white",relief=SUNKEN,borderwidth=0, font=("Helvetica 16 bold"),command=lambda:marcarComoFeito(lbox_roteiros1,lbox_roteiros2)) 
+    btn_entrar.place(x=322,y=230)
 
     #Label "Roteiros ainda não feitos"
     lbl1 = Label(favoritos_janela,text="Roteiros ainda não feitos", relief="flat",font=("Helvetica 12"), bg="white", fg="blue")
-    lbl1.place(x=44,y=100) 
+    lbl1.place(x=44,y=90) 
 
     #Label "Roteiros feitos"
     lbl2 = Label(favoritos_janela,text="Roteiros feitos", relief="flat",font=("Helvetica 12"), bg="white", fg="blue")
-    lbl2.place(x=512,y=100) 
+    lbl2.place(x=512,y=90) 
+
+def MostrarFeitosNaoFeitos(lbox_roteiros1,lbox_roteiros2):
+    txt_feitos = open("ficheiros/feitos.txt", "r", encoding="utf-8")
+    roteiros_feitos = txt_feitos.readlines()
+    txt_feitos.close()
+
+    txt_roteiros = open("ficheiros/roteiros.txt", "r", encoding="utf-8")
+    roteiros = txt_roteiros.readlines()
+    txt_roteiros.close()
+
+    txt_favoritos = open("ficheiros/favoritos.txt", "r", encoding="utf-8")
+    favoritos =  txt_favoritos.readlines()
+    txt_favoritos.close()
+
+    lbox_roteiros1.delete(0, "end")
+    
+    # para colocar os roteiros ainda não feitos na listbox à esquerda
+    for favorito in favoritos:
+        campos = favorito.split(";")
+        if username_autenticado == campos[0]:
+            if len(roteiros_feitos) > 0:
+                for roteiro_feito in roteiros_feitos:
+                    campos2 = roteiro_feito.split(";")
+                    if campos[0] == campos2[0] and campos[1][:-1] != campos2[1][:-1]:
+                        for roteiro1 in roteiros:
+                            campos1 = roteiro1.split(";")
+                            if campos1[0][:1] == campos[1][:-1]:
+                                lbox_roteiros1.insert("end"," " +campos1[1])
+            else:
+                for roteiro1 in roteiros:
+                    campos1 = roteiro1.split(";")
+                    if campos1[0][:1] == campos[1][:-1]:
+                        lbox_roteiros1.insert("end"," " +campos1[1])
+
+    # para colocar os roteiros feitos na listbox à direita
+    for roteiro in roteiros_feitos:
+        campos = roteiro.split(";")
+        if username_autenticado == campos[0]:
+            for roteiro1 in roteiros:
+                campos1 = roteiro1.split(";")
+                if campos1[0][:1] == campos[1][:-1]:
+                    lbox_roteiros2.insert("end"," " +campos1[1])
+    
+
+def marcarComoFeito(lbox_roteiros1,lbox_roteiros2):
+    if not lbox_roteiros1.curselection():
+        return
+    
+    roteiro_feito = lbox_roteiros1.get(lbox_roteiros1.curselection())[1:]
+
+    txt_favoritos = open("ficheiros/favoritos.txt", "r", encoding="utf-8")
+    favoritos = txt_favoritos.readlines()
+    txt_favoritos.close()
+
+    txt_roteiros = open("ficheiros/roteiros.txt", "r", encoding="utf-8")
+    roteiros = txt_roteiros.readlines()
+    txt_roteiros.close()
+
+    for roteiro in roteiros:
+        campos = roteiro.split(";")
+        if roteiro_feito == campos[1]:
+            id = campos[0][:1]
+
+
+    txt_feitos = open("ficheiros/feitos.txt", "a", encoding="utf-8")
+    txt_feitos.write("{0};{1}\n" .format(username_autenticado,id))
+    txt_feitos.close()
+    MostrarFeitosNaoFeitos(lbox_roteiros1,lbox_roteiros2)
+    
 
 
 
+info_tipo = ""
+info_ordem = -1
+
+def prepararOrdenacao(lbox_roteiros,ordem,tipo,nome_roteiro,roteiros_filtrados):
+    global info_tipo,info_ordem
+    if tipo == "v":
+        info_tipo = "v"
+        ordenarDescAscVisualizacoes(lbox_roteiros,ordem, nome_roteiro, roteiros_filtrados)
+        
+    else:
+        info_tipo = "p"
+        ordenarDescAscPontuacoes(lbox_roteiros,ordem, nome_roteiro,roteiros_filtrados)
+    
+    if ordem == 1:
+        info_ordem = 1
+    else:
+        info_ordem = 0
+
+    pode_publicar_comentario = 0
 
 #Função que mostra o catálogo
 def mostrarCatalogo(janela_principal,barra_menu,altura,imagem_clicada):
@@ -1118,24 +1253,22 @@ def mostrarCatalogo(janela_principal,barra_menu,altura,imagem_clicada):
     lbox_roteiros.bind("<<ListboxSelect>>", lambda e: mudarCanvas(e,txt,lbox_roteiros,main_frame,janela_principal,barra_menu,imagem_clicada))
     
     #Botões seta - visualisações
-    btn_seta_cima_visualicacoes= Button(second_frame,image=img_seta_cima,bg="white", activebackground="white",relief=SUNKEN,borderwidth=0,command=lambda:ordenarDescAscVisualizacoes(lbox_roteiros,0,nome_roteiro,roteiros_filtrados))
+    btn_seta_cima_visualicacoes= Button(second_frame,image=img_seta_cima,bg="white", activebackground="white",relief=SUNKEN,borderwidth=0,command=lambda:prepararOrdenacao(lbox_roteiros,1,"v",nome_roteiro,roteiros_filtrados))
     btn_seta_cima_visualicacoes.place(x=150,y=ultimo_y+40)
 
-    btn_seta_baixo_visualicacoes= Button(second_frame,image=img_seta_baixo,bg="white", activebackground="white",relief=SUNKEN,borderwidth=0,command=lambda:ordenarDescAscVisualizacoes(lbox_roteiros,1,nome_roteiro,roteiros_filtrados))
+    btn_seta_baixo_visualicacoes= Button(second_frame,image=img_seta_baixo,bg="white", activebackground="white",relief=SUNKEN,borderwidth=0,command=lambda:prepararOrdenacao(lbox_roteiros,0,"v",nome_roteiro,roteiros_filtrados))
     btn_seta_baixo_visualicacoes.place(x=150,y=ultimo_y+50)
 
     #Botões seta - pontuação
-    btn_seta_cima_pontuacao= Button(second_frame,image=img_seta_cima,bg="white", activebackground="white",relief=SUNKEN,borderwidth=0,command="noaction")
+    btn_seta_cima_pontuacao= Button(second_frame,image=img_seta_cima,bg="white", activebackground="white",relief=SUNKEN,borderwidth=0,command=lambda:prepararOrdenacao(lbox_roteiros,1,"p",nome_roteiro,roteiros_filtrados))
     btn_seta_cima_pontuacao.place(x=130,y=ultimo_y+80)
 
-    btn_seta_baixo_pontuacao= Button(second_frame,image=img_seta_baixo,bg="white", activebackground="white",relief=SUNKEN,borderwidth=0,command="noaction")
+    btn_seta_baixo_pontuacao= Button(second_frame,image=img_seta_baixo,bg="white", activebackground="white",relief=SUNKEN,borderwidth=0,command=lambda:prepararOrdenacao(lbox_roteiros,0,"p",nome_roteiro,roteiros_filtrados))
     btn_seta_baixo_pontuacao.place(x=130,y=ultimo_y+90)
 
     #PanedWindow que divide o botão "Todos" do "Favoritos"
     title_bar = PanedWindow(second_frame,width=0,height=21,bd=-2, bg="#707070")
     title_bar.place(x=109, y=ultimo_y+120) 
-
-    
     
     # botão "Favoritos"
     favoritos_btn = Button(second_frame, text='Favoritos', relief=SUNKEN, borderwidth=0,bd=-2, activebackground="white", font=("Helvetica", 12, "bold"), bg="white",fg="#7E7E7E",command=lambda:verFavoritos(todos_btn,favoritos_btn,lbox_roteiros))
@@ -1157,37 +1290,52 @@ def mostrarCatalogo(janela_principal,barra_menu,altura,imagem_clicada):
     img_procurar= ImageTk.PhotoImage(resize_img_procurar)
     btn_procurar= Button(second_frame,image=img_procurar,bg="white", activebackground="white",relief=SUNKEN,borderwidth=0,command=lambda:procurarRoteiro(pesquisa,lbox_roteiros)) 
     btn_procurar.place(x=255,y=30)
-    """  #PanedWindow teste3
-    title_bar = PanedWindow(second_frame,width=47,height=58,bd=-2, bg="red")
-    title_bar.place(x=0, y=0) 
-    #PanedWindow teste3
-    title_bar = PanedWindow(second_frame,width=205,height=29,bd=-2, bg="red")
-    title_bar.place(x=47, y=102) 
-    #PanedWindow teste3
-    title_bar = PanedWindow(second_frame,width=205,height=33,bd=-2, bg="red")
-    title_bar.place(x=47, y=145)  """
+    
+    # para mostrar comentarios
+    txt_comentarios = open("ficheiros/comentarios.txt", "r", encoding="utf-8")
+    linhas = txt_comentarios.readlines()
+    txt_comentarios.close()
+
+    altura1 = 110 #altura inicial
+
+    nr_comentarios = 0
+    for linha in linhas:
+        campos = linha.split(";")
+        if campos[0] == nome_roteiro:
+            altura1 += 77
+            nr_comentarios +=1
 
     #PanedWindow Secção dos Comentários
-    comment_section = PanedWindow(second_frame,width=1366,height=110,bd=-2, bg="#F3F6FB")
-    comment_section.pack(side=BOTTOM)   
-
+    comment_section = PanedWindow(second_frame,width=1366,height=altura1,bd=-2, bg="#F3F6FB")
+    comment_section.pack(side=BOTTOM)  
+    
     #Label "Comentários"
-    lbl_comentarios = Label(comment_section,text='Comentários (0)', relief="flat",font=("Helvetica 16"), bg="#F3F6FB",bd = -2)
+    lbl_comentarios = Label(comment_section,text='Comentários ({0})' .format(nr_comentarios), relief="flat",font=("Helvetica 16"), bg="#F3F6FB",bd = -2)
     lbl_comentarios.place(x=259,y=5) 
 
-    #Entry para adicionar um comentário
     comentario = StringVar()
     comentario.set("Comentar")
+
+    global pode_publicar_comentario
+    pode_publicar_comentario = 0
+
+    #Entry para adicionar um comentário
     entry_comentario = Entry(comment_section, textvariable=comentario, font=("Helvetica 12"), bg="white", border=0, fg="#ABABAB")
     entry_comentario.place(x=259,y=50,height=25,width=848)
+    entry_comentario.bind('<ButtonPress-1>', lambda event: mudarTextoComentario(event, comentario, entry_comentario))
 
-    
+    # Botão comentar
+    comentar_btn =Button(comment_section,relief=SUNKEN, image=enviar_img, borderwidth=0,activebackground="#F3F6FB", bg="#F3F6FB", command =lambda:adicionarComentario(comentario,nome_roteiro,username_autenticado, main_frame,janela_principal,barra_menu,altura,imagem_clicada,pode_publicar_comentario))
+    comentar_btn.place(x=1120, y=50 )
+
+    mostrarComentarios(nome_roteiro,linhas,comment_section)
+
     #PanedWindow teste3
     # title_bar = PanedWindow(comment_section,width=259,height=60,bd=-2, bg="red")
     # title_bar.place(x=0, y=0) 
 
     #reconfigurar o comando da opção "Home" da barra de menu
-    barra_menu.entryconfigure("Home", command=lambda:prepararJanelaPrincipal(janela_principal,comment_section,lbl_pontuaçao,lbl_visualizaçoes,entry_pesquisa,txt,main_frame,my_canvas,second_frame))
+    barra_menu.entryconfigure("Home", command=lambda:prepararJanelaPrincipal(janela_principal,my_canvas,comment_section,lbl_pontuaçao,lbl_visualizaçoes,entry_pesquisa,txt,main_frame,my_canvas,second_frame))
     global roteiro_selecionado
     if(roteiro_selecionado):
 
@@ -1202,7 +1350,13 @@ def mostrarCatalogo(janela_principal,barra_menu,altura,imagem_clicada):
         txt_favoritos = open("ficheiros/favoritos.txt", "r", encoding="utf-8")
         favoritos = txt_favoritos.readlines()
         txt_favoritos.close()
+        
+        txt_feitos = open("ficheiros/feitos.txt", "r", encoding="utf-8")
+        feitos = txt_feitos.readlines()
+        txt_feitos.close()
+
         roteiro_favorito = 0
+
         #coraçao
         for favorito in favoritos: # para cada utilizador existente na aplicação que ja marcou pelo menos um roteiro como favorito #
             campos = favorito.split(";")
@@ -1216,12 +1370,33 @@ def mostrarCatalogo(janela_principal,barra_menu,altura,imagem_clicada):
                             if nome_roteiro == campos1[1]:
                                 roteiro_favorito = 1
         if roteiro_favorito : 
-            coracao_btn =Button(second_frame,relief=SUNKEN, image=coracao, borderwidth=0,activebackground="white",activeforeground="lightblue",fg="white", font=("Helvetica 25 bold"), bg="white", command =lambda:desmarcarFavorito(coracao_btn,todos_btn,favoritos_btn,lbox_roteiros))
+            coracao_btn =Button(second_frame,relief=SUNKEN, image=coracao, borderwidth=0,activebackground="white", bg="white", command =lambda:desmarcarFavorito(coracao_btn,todos_btn,favoritos_btn,lbox_roteiros))
         else:
-            coracao_btn =Button(second_frame,relief=SUNKEN, image=coracao_vazio, borderwidth=0,activebackground="white",activeforeground="lightblue",fg="white", font=("Helvetica 25 bold"), bg="white", command =lambda:marcarFavorito(coracao_btn,todos_btn,favoritos_btn,lbox_roteiros))
+            coracao_btn =Button(second_frame,relief=SUNKEN, image=coracao_vazio, borderwidth=0,activebackground="white", bg="white", command =lambda:marcarFavorito(coracao_btn,todos_btn,favoritos_btn,lbox_roteiros))
 
         coracao_btn.place(x=1000,y=130)
 
+        roteiro_feito = 0
+
+        #check
+        for feito in feitos: # para cada utilizador existente na aplicação que ja marcou pelo menos um roteiro como favorito #
+            campos = feito.split(";")
+            roteiro = campos[1].lower()
+            nr_feitos = len(campos) #quantos roteiros o utilizador tem como favoritos 
+            if campos[0] == username_autenticado: #se o programa encontra-se na linha que contêm o nome do utilizador autenticado)
+                for x in range(1,nr_feitos): #iterar o id de cada roteiro marcado como favorito pelo utilizador autenticado
+                    for roteiro in roteiros: # para cada roteiro existente no ficheiro roteiros.txt
+                        campos1 = roteiro.split(";")
+                        if campos1[0][0:1] == campos[x].replace("\n",""): #se o id do roteiro iterado no ficheiro roteiros.txt é igual ao id do roteiro marcado como favorito 
+                            if nome_roteiro == campos1[1]:
+                                roteiro_feito = 1
+        
+        if roteiro_feito : 
+            check_btn =Button(second_frame,relief=SUNKEN, image=check_img, borderwidth=0,activebackground="white", bg="white")
+        else:
+            check_btn =Button(second_frame,relief=SUNKEN, image=check_img_invisivel, borderwidth=0,activebackground="white", bg="white")
+
+        check_btn.place(x=1000,y=180)
         
         # numero de visualizações
         nr_visualizacoes = StringVar()
@@ -1265,8 +1440,29 @@ def mostrarCatalogo(janela_principal,barra_menu,altura,imagem_clicada):
         msg_roteiro = Message(second_frame,width=400,text="Nenhum roteiro selecionado", bg="white", font=("Helvetica 21 bold"), fg="#B0B0B0")
         msg_roteiro.place(x=484,y=348)
 
+def adicionarComentario(comentario,nome_roteiro,username_autenticado, main_frame,janela_principal,barra_menu,altura,imagem_clicada,pode_publicar_comentario):
+    global roteiro_selecionado
+    if pode_publicar_comentario:
+        txt_comentarios = open("ficheiros/comentarios.txt", "a", encoding="utf-8")
+        linha = nome_roteiro + ";" + username_autenticado + ";" + comentario.get() +"\n"
+        txt_comentarios.write(linha)
+        txt_comentarios.close()
 
+    main_frame.destroy()
+
+    roteiro_selecionado = True
+    mostrarCatalogo(janela_principal,barra_menu,altura,imagem_clicada)
+
+
+
+def mudarTextoComentario(event, comentario, entry_comentario):
+    global pode_publicar_comentario
+    entry_comentario.configure(fg = "black")
+    comentario.set("")
+    entry_comentario.unbind('<ButtonPress-1>')
+    pode_publicar_comentario = 1 
     
+
     
 #-----------------\\----------------------------------------------
 #Janela de log-in, inspirado no site: https://www.behance.net/gallery/134237737/Sign-up-Daily-UI?tracking_source=search_projects_recommended%7Cregistration
@@ -1319,20 +1515,6 @@ msg2.place(x=691,y=565)
 #Botao "Regista-te!"
 btn_registate = Button(window,text="Regista-te!",relief=SUNKEN, borderwidth=0,bg="white", activebackground="white",bd=-5, fg="#29A9FF",font=("Helvetica 11 bold"), command=colocarFormRegisto)
 btn_registate.place(x=840,y=558)
-
-""" 
-USEM ESTES PANEDWINDOWS PARA DISPOR OS WIDGETS DE FORMA IGUAL COMO ESTÃO DISPOSTOS NO PROTOTIPO
-#PanedWindow teste3
-title_bar = PanedWindow(window,width=165,height=15,bd=-2, bg="red")
-title_bar.place(x=590, y=615) 
-
-#PanedWindow teste3
-title_bar = PanedWindow(window,width=184,height=2,bd=-2, bg="#29A9FF")
-title_bar.place(x=590, y=363)  
-
-#PanedWindow teste3
-title_bar = PanedWindow(window,width=2,height=2,bd=-2, bg="#29A9FF")
-title_bar.place(x=590, y=433)   """
 
 #Botão "Entrar"
 img_btn_entrar= PhotoImage(file="imagens/Entrar.png")
@@ -1413,6 +1595,14 @@ melgaco= Image.open("imagens/2.jpg")
 resize_melgaco = melgaco.resize((200,180),Image.ANTIALIAS)
 melgaco =  ImageTk.PhotoImage(resize_melgaco)
 
+aveiro= Image.open("imagens/3.jpg")
+resize_aveiro = aveiro.resize((200,180),Image.ANTIALIAS)
+aveiro =  ImageTk.PhotoImage(resize_aveiro)
+
+ponte_de_lima= Image.open("imagens/4.jpg")
+resize_ponte_de_lima = ponte_de_lima.resize((200,180),Image.ANTIALIAS)
+ponte_de_lima =  ImageTk.PhotoImage(resize_ponte_de_lima)
+
 onde_comer= Image.open("imagens/1.jpg")
 resize_onde_comer = onde_comer.resize((200,180),Image.ANTIALIAS)
 onde_comer =  ImageTk.PhotoImage(resize_onde_comer)
@@ -1453,13 +1643,17 @@ feito_img_hover= Image.open("imagens/Feito_hover.jpg")
 resize_feito_img_hover = feito_img_hover.resize((159,43),Image.ANTIALIAS)
 feito_img_hover =  ImageTk.PhotoImage(resize_feito_img_hover)
 
-remover_img= Image.open("imagens/Remover.jpg")
-resize_remover_img = remover_img.resize((159,43),Image.ANTIALIAS)
-remover_img=  ImageTk.PhotoImage(resize_remover_img)
+enviar_img= Image.open("imagens/enviar.png")
+resize_enviar_img = enviar_img.resize((20,20),Image.ANTIALIAS)
+enviar_img =  ImageTk.PhotoImage(resize_enviar_img)
 
-remover_img_hover= Image.open("imagens/Remover_hover.jpg")
-resize_remover_img_hover = remover_img_hover.resize((159,43),Image.ANTIALIAS)
-remover_img_hover =  ImageTk.PhotoImage(resize_remover_img_hover)
+check_img= Image.open("imagens/check.jpg")
+resize_check_img= check_img.resize((20,20),Image.ANTIALIAS)
+check_img =  ImageTk.PhotoImage(resize_check_img)
+
+check_img_invisivel= Image.open("imagens/check_escondido.jpg")
+resize_check_img_invisivel= check_img_invisivel.resize((20,20),Image.ANTIALIAS)
+check_img_invisivel =  ImageTk.PhotoImage(resize_check_img_invisivel)
 
 #Nome do roteiro selecionado para ler
 nome_roteiro = ""

@@ -13,6 +13,7 @@ import datetime
 from scripts.widgets import *
 from scripts.login import *
 from scripts.catalogo import * 
+from scripts.admin import *
 
 #Antes, a função colocarFormLogin era chamada dentro da função registarConta, que se encontra no módulo login.py.
 #Não podemos chamar uma função que esteja declarada no ficheiro index.py, dentro de uma função que esteja declarada no ficheiro login.py
@@ -154,6 +155,7 @@ def mostrarJanelaPrincipal(janela_principal):
 
     #Menu   
     # atributo tearoff="off" remove as dashed lines de cada menu de uma opção cascade
+    global barra_menu
     barra_menu = Menu(janela_principal)
     #Opção "Home"
     barra_menu.add_command(label="Home", command="noaction")
@@ -164,14 +166,16 @@ def mostrarJanelaPrincipal(janela_principal):
     #Opção "Favoritos"
     barra_menu.add_command(label="Favoritos",command=lambda:prepararFavoritos(janela_principal,barra_menu))
     #Opção "Notificações"
-    nr_nots = verNumeroNotificacoes()
-    barra_menu.add_command(label="Notificações({0})" .format(nr_nots), command=lambda:prepararNotificacoes(janela_principal,barra_menu))
+    barra_menu.add_command(label="Notificações", command=lambda:prepararNotificacoes(janela_principal,barra_menu))
     if tipo_utilizador_autenticado == "admin":
         #Opção "Admin"
         barra_menu.add_command(label="Admin", command=lambda:prepararAdmin(janela_principal,barra_menu))
     #Opção "Sair da Conta"
     barra_menu.add_command(label="Sair da Conta", command=lambda:fecharJanela(janela_principal,log_in_frame))
     janela_principal.configure(menu=barra_menu)
+
+    nr_nots = verNumeroNotificacoes()
+    barra_menu.entryconfigure("Notificações", label = "Notificações({0})" .format(nr_nots))
 
     #Message "Boa tarde/Bom dia/Boa noite [nome do utilizador]"
     msg_boas_vindas = Message(janela_principal,width=282,text="", bd=-3,bg="#F3F6FB", font=("Helvetica 19 bold"))
@@ -235,6 +239,15 @@ def saudarUtilizador(data,username_autenticado,msg_boas_vindas):
 
 # Função que permite o utilizador avaliar os roteiros
 def darAvaliacao(pontuacao,username_autenticado,id_roteiro):
+    
+    comentario = "//n\\Avaliaste o roteiro" + " " + nome_roteiro
+    txt_notificaçoes = open("ficheiros/notificaçoes.txt", "a", encoding="utf-8")
+    txt_notificaçoes.write("{0};{1}\n" .format(username_autenticado,comentario))
+    txt_notificaçoes.close()   
+    nr_nots = verNumeroNotificacoes()
+    global barra_menu
+    barra_menu.entryconfigure(5, label = "Notificações({0})" .format(nr_nots))
+    
     txt_pontuacoes = open("ficheiros/pontuacoes.txt", "r", encoding="utf-8")
     linhas = txt_pontuacoes.readlines()
     txt_pontuacoes.close()
@@ -582,7 +595,15 @@ def marcarFavorito(coracao_btn,todos_btn,favoritos_btn,lbox_roteiros):
         txt_favoritos.write(username_autenticado + ";" + id_roteiro + "\n")
         txt_favoritos.close()
 
-                
+    comentario = "//n\\Marcaste o roteiro" + " " + nome_roteiro + " " + "como favorito!"
+    txt_notificaçoes = open("ficheiros/notificaçoes.txt", "a", encoding="utf-8")
+    txt_notificaçoes.write("{0};{1}\n" .format(username_autenticado,comentario))
+    txt_notificaçoes.close()   
+    nr_nots = verNumeroNotificacoes()
+    global barra_menu
+    barra_menu.entryconfigure(5, label = "Notificações({0})" .format(nr_nots))
+
+
     coracao_btn.config(image = coracao,command=lambda:desmarcarFavorito(coracao_btn,todos_btn,favoritos_btn,lbox_roteiros))
 
     if a_ver_que_lista == "favoritos":
@@ -762,10 +783,10 @@ def prepararTopMostRated(janela_principal,barra_menu):
     mostrarTop()
 
 def prepararNotificacoes(janela_principal,barra_menu):
-    mostrarNotificacoes()
+    mostrarJaneçaNotificacoes()
 
 def prepararAdmin(janela_principal,barra_menu):
-    mostrarAdmin(janela_principal,barra_menu)
+    mostrarAdmin()
 
 #Destruir os widgets do catalogo e mostrar a janela principal
 def prepararJanelaPrincipal(janela_principal,my_canvas,*widgets):
@@ -793,7 +814,7 @@ a_ver_que_lista = "todos"
 categoria_selected = [] #lista que armazena valores booleanos que mostram se uma categoria está ou não selecionada
 categorias_nomes = []  #lista que guarda os nomes das categorias
 
-def mostrarNotificacoes():
+def mostrarJaneçaNotificacoes():
     notificacoes_janela = Toplevel()
     app_width = 800
     app_height = 500
@@ -813,16 +834,37 @@ def mostrarNotificacoes():
     lbox_roteiros1 = Listbox(notificacoes_janela,relief="flat",bd=-2, bg="#F3F6FB",fg="#7E7E7E",font=('Helvetica', 11,"bold"), activestyle="none",highlightthickness=0,selectbackground='#F3F6FB',selectforeground='black')
     lbox_roteiros1.place(x=44,y=119,height=262,width=243)
 
+    mostrarNotificacoes(lbox_roteiros1)
+
     #Botão "Consultar"
-    btn_consultar= Button(notificacoes_janela,image=consultar_img,bg="white", activebackground="white",relief=SUNKEN,borderwidth=0, font=("Helvetica 16 bold"),command="noaction")  
+    btn_consultar= Button(notificacoes_janela,image=consultar_img,bg="white", activebackground="white",relief=SUNKEN,borderwidth=0, font=("Helvetica 16 bold"),command=lambda:mostrarNotificacao(txt_notificacao,lbox_roteiros1))  
     btn_consultar.place(x=88,y=407)
 
     #Text notificação
-    txt_notificacao = Text(notificacoes_janela, wrap='word',relief="solid", bg="white", fg="white",cursor="arrow",selectbackground="#09d8be",bd=-2,borderwidth=2)
+    txt_notificacao = Text(notificacoes_janela, wrap='word',relief="solid", bg="white", fg="black",cursor="arrow",selectbackground="#09d8be",bd=-2,borderwidth=2)
     txt_notificacao.place(x=341,y=100,width=354, height=301)
 
+def mostrarNotificacoes(lbox_roteiros1):
+    txt_notificaçoes = open("ficheiros/notificaçoes.txt", "r", encoding="utf-8")
+    linhas = txt_notificaçoes.readlines()
+    txt_notificaçoes.close()   
 
-def mostrarAdmin(janela_principal,barra_menu):
+    lbox_roteiros1.delete(0, "end")
+    for linha in linhas:
+        campos = linha.split(";")
+        if username_autenticado == campos[0]:
+            if campos[1].count("//n\\") > 0:
+                lbox_roteiros1.insert(0, " " +campos[1][4:])
+            else:
+                lbox_roteiros1.insert(0, " " +campos[1])
+            
+def mostrarNotificacao(txt_notificacao,lbox_roteiros1):
+    if not lbox_roteiros1.curselection():
+        return
+    txt_notificacao.delete('1.0','end')
+    txt_notificacao.insert("end",lbox_roteiros1.get(lbox_roteiros1.curselection()))
+
+def mostrarAdmin():
     admin_janela = Toplevel()
     app_width = 1024
     app_height = 500
@@ -840,11 +882,13 @@ def mostrarAdmin(janela_principal,barra_menu):
     lbl_opcoes.place(x=44,y=20) 
 
     #Entry adicionar nova categoria
-    entry_pesquisa = Entry(admin_janela, textvariable=pesquisa, relief="flat", bg="#F3F6FB", font=("Helvetica 13"))
+    criar_categoria = StringVar()
+    entry_pesquisa = Entry(admin_janela, textvariable=criar_categoria, relief="flat", bg="#F3F6FB", font=("Helvetica 13"))
     entry_pesquisa.place(x=173,y=20,height=30,width=205)
 
     #Entry para o título
-    entry_titulo = Entry(admin_janela, textvariable=pesquisa, relief="flat", bg="#F3F6FB", font=("Helvetica 13"))
+    titulo = StringVar()
+    entry_titulo = Entry(admin_janela, textvariable=titulo, relief="flat", bg="#F3F6FB", font=("Helvetica 13"))
     entry_titulo.place(x=607,y=55,height=30,width=205)
 
     #Botão "Adicionar categoria"
@@ -858,10 +902,6 @@ def mostrarAdmin(janela_principal,barra_menu):
     #Botão "Editar roteiro"
     btn_add= Button(admin_janela,text= "Editar roteiro",bg="white", activebackground="white", font=("Helvetica 16 bold"),command="noaction")  
     btn_add.place(x=300,y=273)
-
-    #Botão "Associar imagem"
-    btn_add= Button(admin_janela,text= "Associar imagem",bg="white", activebackground="white", font=("Helvetica 16 bold"),command="noaction")  
-    btn_add.place(x=650,y=193)
 
     #Botão "Adicionar roteiro"
     btn_add= Button(admin_janela,text= "Adicionar roteiro",bg="white", activebackground="white", font=("Helvetica 16 bold"),command="noaction")  
@@ -888,9 +928,18 @@ def mostrarAdmin(janela_principal,barra_menu):
     lbl_opcoes = Label(admin_janela,text="Descrição", relief="flat",font=("Helvetica 12"), bg="white", fg="blue")
     lbl_opcoes.place(x=512,y=96) 
 
+    
     #Listbox da esquerda
     lbox_roteiros1 = Listbox(admin_janela,relief="flat",bd=-2, bg="#F3F6FB",fg="#7E7E7E",font=('Helvetica', 11,"bold"), activestyle="none",highlightthickness=0,selectbackground='#F3F6FB',selectforeground='black')
     lbox_roteiros1.place(x=44,y=201,height=262,width=243)
+    txt_roteiros = open("ficheiros/roteiros.txt", "r", encoding="utf-8")
+    roteiros = txt_roteiros.readlines()
+    txt_roteiros.close()
+    lbox_roteiros1.delete(0, "end")
+    for roteiro in roteiros:
+        
+        lbox_roteiros1.insert("end",roteiro)
+
 
     #Label "Desenvolvimento"
     lbl_opcoes = Label(admin_janela,text="Desenvolvimento", relief="flat",font=("Helvetica 12"), bg="white", fg="blue")
@@ -1125,6 +1174,14 @@ def marcarComoFeito(lbox_roteiros1,lbox_roteiros2):
     txt_feitos.write("{0};{1}\n" .format(username_autenticado,id))
     txt_feitos.close()
     MostrarFeitosNaoFeitos(lbox_roteiros1,lbox_roteiros2)
+
+    comentario = "//n\\Marcaste o roteiro" + " " + roteiro_feito + " " + "como feito!"
+    txt_notificaçoes = open("ficheiros/notificaçoes.txt", "a", encoding="utf-8")
+    txt_notificaçoes.write("{0};{1}\n" .format(username_autenticado,comentario))
+    txt_notificaçoes.close()   
+    nr_nots = verNumeroNotificacoes()
+    global barra_menu
+    barra_menu.entryconfigure(5, label = "Notificações({0})" .format(nr_nots))
     
 
 
@@ -1448,7 +1505,15 @@ def adicionarComentario(comentario,nome_roteiro,username_autenticado, main_frame
         txt_comentarios.write(linha)
         txt_comentarios.close()
 
+    comentario = "//n\\Publicaste um comentário sobre o roteiro " + " " + nome_roteiro 
+    txt_notificaçoes = open("ficheiros/notificaçoes.txt", "a", encoding="utf-8")
+    txt_notificaçoes.write("{0};{1}\n" .format(username_autenticado,comentario))
+    txt_notificaçoes.close()   
+    nr_nots = verNumeroNotificacoes()
+    barra_menu.entryconfigure(5, label = "Notificações({0})" .format(nr_nots))
+    
     main_frame.destroy()
+    
 
     roteiro_selecionado = True
     mostrarCatalogo(janela_principal,barra_menu,altura,imagem_clicada)
